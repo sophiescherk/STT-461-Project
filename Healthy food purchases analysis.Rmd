@@ -1,0 +1,234 @@
+---
+title: "Small store food purchase behavior"
+author: "Dr. Andriana Manousidaki"
+date: "2026-04-04"
+output: html_document
+---
+
+
+
+# The STORE survey
+
+* In the Fall of 2014, the City of Minneapolis revised an ordinance requiring all stores with grocery licenses to carry a wide array of healthy foods and beverages in order to better align with the Dietary Guidelines for Americans and stocking requirements for WIC (Women, Infants and Children) program vendors.
+
+* To date, Minneapolis is the only city in the U.S. to have a policy of this kind in place. This type of policy action may have an important impact on food access, particularly in under-served neighborhoods and small food stores that do not currently stock these types of items.
+
+* The purpose of this **STaple foods ORdinance Evaluation (STORE) study**, therefore, is to evaluate the impact of this local policy change (i.e., the Minneapolis Staple Foods Ordinance) that establishes minimum stocking criteria for a wide array of healthy foods as a requirement of food store licensing.
+
+* One of the type of data collected were about the nutritional quality of consumer purchases at small- to mid-sized food stores, including assessment of energy density and calories via customer intercept surveys and direct observation of purchases.
+
+* The stores included in the study were: convenience store, food-gas stores, dollar stores and pharmacies.
+
+* The data set `small_store_customer_intercept.csv`, inlcudes information about the purcahse amount and the diet quality of food item purchased by 2760 customers of small and medium food stores, in Minneapolis and St. Paul, Minnesota.
+
+* Many demographic variables (`age_group, education,sex, BMI_group`) can help us understand the customer characteristics of small and medium stores that carry food items.
+
+* Recorded Healthy Eating Index data:
+
+  * The variable `hei2010_total_score` records the [Healthy Eating Index-2010 (HEI-2010)](https://epi.grants.cancer.gov/hei/) for each customer that evaluates the guality of Diet in a 100-point scale.
+
+  * The `hei_group` variable categorize each customer to a High, Good, Average, Needs Improvement and Poor level of quality of diet based on the interpretation of their hei2010_total_score.
+
+  * The `hei_4groups` splits the `hei2010_total_score` sample data to 4 equal groups and allows us to see the distribution of the scores in higher resolution.
+
+* Other interesting variables are :
+    * `shopfreq3`: the frequency that customers in Minnesota purchase food items from small and medium sized stores
+    * `addsugar`: the percent of calories from added sugars (among food/beverages purchased)
+    * `rikcal`: The energy (kilocalories) of food/beverages purchased
+    * `fruit_tot,veg_tot, whgrains_all_tot, lf_milk_tot`: indicator variables that record if the purchase included at least one serving of fuit, vegetables, whole grains or low fat milk correspondingly.
+    
+* Analyzing the above variables we can:
+  * get an estimate of the diet quality of the population in Minneapolis and St. Paul.
+  * understand the typical customer of small and medium food stores.
+  * find the groups that follow the poorest diet quality based on their purchases from small and medium food stores.
+  * Use the above information to inform policies that increase the quality of eating habits.
+  
+# Load the customer-diet quality data
+
+```{r message=FALSE}
+library(tidyverse)
+library(ggmosaic)
+
+customer_intercep <- readRDS("small_store_customer_intercept.rds")
+```
+
+    
+# The demographic characteristics of the most frequent customers of small and medium food stores.
+
+* High school dimploma or less level of education has the highest proportion of customers that buy products from a small/medium store at least once per day.
+
+```{r}
+ggplot(customer_intercep) +
+  geom_mosaic(aes(x = product(shopfreq3, education), 
+                  fill=shopfreq3), 
+              show.legend = FALSE) +
+  theme_mosaic()+
+  theme(axis.text.x = element_text(angle = 45, 
+                                   hjust = 1, vjust =1),
+        axis.text = element_text(size = 11))+
+  ggtitle("Mosaic plot of purchase frequency vs Education")
+  
+```
+
+
+* The 26 to 53.5 years old age groups have the highest proportion of customers that buy products from a small/medium store at least once per day.
+
+```{r}
+ggplot(customer_intercep) +
+  geom_mosaic(aes(x = product(shopfreq3, age_group), 
+                  fill=shopfreq3), 
+              show.legend = FALSE) +
+  theme_mosaic()+
+  theme(axis.text.x = element_text(angle = 90, 
+                                   hjust = 1, vjust =1),
+        axis.text = element_text(size = 8))+
+  ggtitle("Mosaic plot of purchase frequency vs age")
+  
+```
+
+* About the same propotions of female and male customers visit small/medium food stores in all frequency levels but the proportion of male customers that shope at least once per day is higher than the female proportion of our sample.
+
+* A chi square test of independence can validate that the shopping frequncy distribution is different between male and female customers. 
+
+* The code below includes the test.
+
+```{r}
+ggplot(customer_intercep) +
+  geom_mosaic(aes(x = product(shopfreq3, sex), 
+                  fill=shopfreq3), 
+              show.legend = FALSE) +
+  theme_mosaic()+
+  theme(axis.text.x = element_text(angle = 90, 
+                                   hjust = 1, vjust =1),
+        axis.text = element_text(size = 8))+
+  ggtitle("Mosaic plot of purchase frequency vs sex")
+
+twoway_table <- table(customer_intercep$shopfreq3, customer_intercep$sex)
+chisq.test(twoway_table)
+  
+```
+
+# Exploring the HEI index within different demographic categories
+
+## Diet quality groups in Minnesota
+
+* The HEI score is interpreted as follows:
+
+  * (90–100): High-quality diet.
+  * (80–89): Good quality diet.
+  * (70–79): Average diet.
+  * (60–69): Needs improvement.
+  * (0–59): Poor diet quality.
+  
+* Based on the sample data the majority of customers purchased food that indicates poor diet quality.
+
+```{r}
+ggplot(customer_intercep, aes(x=hei_group, fill = hei_group)) + 
+  geom_bar()
+```
+* There are customers with negative score and unfortunately only a few with score above 80.
+
+```{r}
+ggplot(customer_intercep, aes(x=hei2010_total_score)) + 
+  geom_histogram(bins =20)
+```
+
+## The HEI scores seem different within the two sex groups
+
+
+```{r}
+ggplot(customer_intercep, aes(x=hei2010_total_score, 
+                           fill = sex)) + 
+  geom_boxplot( color = "black") +
+  coord_flip()+
+  ggtitle("Diet quality score within sex groups")
+```
+
+
+
+
+## The HEI scores seem different within the different education groups
+
+* College graduates seem to have a better average HEI score.
+
+```{r}
+ggplot(customer_intercep, aes(x=hei2010_total_score, 
+                           fill = education)) + 
+  geom_boxplot( color = "black") +
+  coord_flip()+
+  ggtitle("Diet quality score within education groups")
+
+```
+
+## Healthy objects purchased
+
+* Very few customers include at least one serving of fruits or vegetables or whole grains.
+
+```{r}
+ggplot(customer_intercep, aes(x=fruit_tot, fill = fruit_tot)) + 
+  geom_bar()
+```
+
+```{r}
+ggplot(customer_intercep, aes(x=veg_tot, fill = veg_tot)) + 
+  geom_bar()
+```
+
+```{r}
+ggplot(customer_intercep, aes(x=whgrains_all_tot, fill = whgrains_all_tot)) + 
+  geom_bar()
+```
+
+## Did the HEI score improve after the application of the new measures (time = 2,3,4)?
+
+```{r}
+ggplot(customer_intercep, aes(x=hei2010_total_score, 
+                           fill = time)) + 
+  geom_boxplot( color = "black") +
+  coord_flip()+
+  ggtitle("Diet quality score within time groups")
+
+
+```
+
+* A chisquare test can tell us if the distribution of HEI score groups has changed after the 1st time period. The mosaic plot shows small shifts.
+
+```{r}
+ggplot(customer_intercep) +
+  geom_mosaic(aes(x = product(hei_4groups, time), 
+                  fill=hei_4groups), 
+              show.legend = FALSE) +
+  theme_mosaic()+
+  theme(axis.text.x = element_text(angle = 90, 
+                                   hjust = 1, vjust =1),
+        axis.text = element_text(size = 8))+
+  ggtitle("Mosaic plot of hei group vs time period after measure applied")
+
+  
+```
+
+
+# Questions/tasks to explore:
+
+1. Create the histogram of HEI score (`hei2010_total_score`) and overlay the estimated density. [Example code](https://r-charts.com/distribution/histogram-density-ggplot2/)
+
+2. Estimate the mean HEI score (`hei2010_total_score`) of customers in Minnesota. Bootstrap CI for a mean - Lecture 23.
+
+3. Estimate the mean HEI score (`hei2010_total_score`) of female customers in Minnesota. Bootstrap CI for a mean - Lecture 23.
+
+4. Estimate the mean HEI score (`hei2010_total_score`) of male customers in Minnesota. Bootstrap CI for a mean - Lecture 23.
+
+5. Test if the mean HEI score of female customers is higher than for male customers. Permuation test for two means - Lecture 22.
+
+6. Test if the mean HEI score of College graduates is higher than for customers with a high school degree. Permuation test for two means - Lecture 22. Notice that here you will need to do the test on the subset of the data set that has only the education levels "Bachelors or higher" and "High school or less"
+
+7. Test if the mean HEI score of customers that shop less than once a week is higher than customers that shop once per day. Permuation test for two means - Lecture 22. Again you will need to create an appropriate subset.
+
+8. (Optional but recommended) Apply the chisquare test of independence on the `hei_4groups` and `time` variable to test if the distribution of HEI score groups changed after the 1st time period.
+
+9. What is your conclusion? Is the HEI score good for the Minnesota population? Which demographic groups are in danger? What are some published results about the HEI score on a national level. Is it important to provide more healthy options in small/medium food stores?
+
+<br>
+<br>
+<br>
+<br>
